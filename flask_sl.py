@@ -10,13 +10,13 @@
 """
 from __future__ import absolute_import
 from functools import wraps
-import re, hashlib
+import re
 
 from netaddr import IPAddress, IPNetwork
 from flask import _request_ctx_stack, request, abort
 
 
-__all__ = ['SLAware', 'sl_required']
+__all__ = ['SLAware']
 
 
 # http://wiki.secondlife.com/wiki/Simulator_IP_Addresses
@@ -59,16 +59,16 @@ class SLAware(object):
         if request.from_sl and self.app.config['SL_PARSE_XHEADERS']:
             try:
                 request.sl = SLRequestObject(request=request)
-            except (ValueError, AttributeError) as e:
+            except (ValueError, AttributeError):
                 self.bad_request()
 
     def bad_request_handler(self, callback):
         """Set callback for :meth:`bad_request` method."""
-        self.bad_request_handler = callback
+        self.bad_request_callback = callback
 
     def bad_request(self):
         """Called when there is an ill-formatted request"""
-        if self.bad_request_callback:
+        if callable(self.bad_request_callback):
             return self.bad_request_callback()
         abort(400)
 
@@ -79,7 +79,7 @@ class SLAware(object):
     def unauthorized(self):
         """Called when request does not originate from SL
         on a route decorated with :meth:`sl_required`."""
-        if self.unauthorized_callback:
+        if callable(self.unauthorized_callback):
             return self.unauthorized_callback()
         abort(401)
 
@@ -119,7 +119,7 @@ class SLVector3():
         self.z = z
 
     def __eq__(self, other):
-        if isinstance(other, Vector3):
+        if isinstance(other, SLVector3):
             return self.x == other.x and \
                    self.y == other.y and \
                    self.z == other.z
@@ -184,28 +184,32 @@ class SLRegion(object):
 class SLRequestObject(object):
     """Container class for parsed X-SecondLife HTTP Headers."""
 
-    name       = ""
-    key        = ""
-    region     = ""
-    position   = None
-    rotation   = None
-    velocity   = None
+    name = ""
+    key = ""
+    region = ""
+    position = None
+    rotation = None
+    velocity = None
     owner_name = ""
-    owner_key  = ""
+    owner_key = ""
 
     def __init__(self, request=None):
         if request is not None:
-            self.from_request(request);
+            self.from_request(request)
 
     def from_request(self, request):
-        self.name       = request.headers["X-SecondLife-Object-Name"]
-        self.key        = request.headers["X-SecondLife-Object-Key"]
-        self.region     = SLRegion.from_xheader(request.headers["X-SecondLife-Region"])
-        self.position   = SLVector3.from_xheader(request.headers["X-SecondLife-Local-Position"])
-        self.rotation   = SLQuaternion.from_xheader(request.headers["X-SecondLife-Local-Rotation"])
-        self.velocity   = SLVector3.from_xheader(request.headers["X-SecondLife-Local-Velocity"])
+        self.name = request.headers["X-SecondLife-Object-Name"]
+        self.key = request.headers["X-SecondLife-Object-Key"]
+        self.region = SLRegion.from_xheader(
+            request.headers["X-SecondLife-Region"])
+        self.position = SLVector3.from_xheader(
+            request.headers["X-SecondLife-Local-Position"])
+        self.rotation = SLQuaternion.from_xheader(
+            request.headers["X-SecondLife-Local-Rotation"])
+        self.velocity = SLVector3.from_xheader(
+            request.headers["X-SecondLife-Local-Velocity"])
         self.owner_name = request.headers["X-SecondLife-Owner-Name"]
-        self.owner_key  = request.headers["X-SecondLife-Owner-Key"]
+        self.owner_key = request.headers["X-SecondLife-Owner-Key"]
 
     def __repr__(self):
         return "<SLRequestObject %s (Owner: %s, Location: %s %s)>" % \
