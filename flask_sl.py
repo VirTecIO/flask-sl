@@ -33,7 +33,7 @@ SL_ADDRESS_RANGES_USED = [
 class SLAware(object):
     """Flask-SecondLife main class. Initializing this extension with
     a Flask application will cause all requests to receive the attribute
-    :attr: `from_sl` and a parsed Python object :attr: `sl_object` 
+    :attr: `from_sl` and a parsed Python object :attr: `sl_object`
     (:class:`SLRequestObject`) if ``'SL_PARSE_XHEADERS'`` is `True` (Default.)
     """
 
@@ -65,7 +65,7 @@ class SLAware(object):
     def bad_request_handler(self, callback):
         """Set callback for :meth:`bad_request` method."""
         self.bad_request_handler = callback
-    
+
     def bad_request(self):
         """Called when there is an ill-formatted request"""
         if self.bad_request_callback:
@@ -85,7 +85,7 @@ class SLAware(object):
 
     def sl_required(self, fn):
         """Use this decorator to limit routes to requests
-        originating from Second Life. Aborts with an 
+        originating from Second Life. Aborts with an
         Unauthorized 401 response.
 
             @app.route('/sl')
@@ -97,8 +97,8 @@ class SLAware(object):
         @wraps(fn)
         def decorated_view(*args, **kwargs):
             if not request.from_sl:
-                self.unauthorized() 
-            return fn(*args, **kwargs)           
+                self.unauthorized()
+            return fn(*args, **kwargs)
         return decorated_view
 
 
