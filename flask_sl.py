@@ -16,7 +16,7 @@ from netaddr import IPAddress, IPNetwork
 from flask import _request_ctx_stack, request, abort
 
 
-__all__ = ['SLAware']
+__all__ = ['SLAware', 'requires_lsl_headers']
 
 
 # http://wiki.secondlife.com/wiki/Simulator_IP_Addresses
@@ -214,3 +214,25 @@ class SLRequestObject(object):
     def __repr__(self):
         return "<SLRequestObject %s (Owner: %s, Location: %s %s)>" % \
             (self.name, self.owner_name, self.region.name, self.position)
+
+
+_REQUIRED_HEADERS = (
+    'X-SecondLife-Object-Name',
+    'X-SecondLife-Object-Key',
+    'X-SecondLife-Owner-Name',
+    'X-SecondLife-Owner-Key',
+    'X-SecondLife-Local-Position',
+    'X-SecondLife-Local-Rotation',
+    'X-SecondLife-Local-Velocity',
+    'X-SecondLife-Region')
+
+
+def requires_lsl_headers(func):
+    """ Ensures requests have the request headers parsed and that they exist"""
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        if all(name in request.headers for name in _REQUIRED_HEADERS):
+            request.sl_object = SLRequestObject(request)
+            return func(*args, **kwargs)
+        abort(400)
+    return wrapped
